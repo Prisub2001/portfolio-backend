@@ -1,9 +1,11 @@
+import requests
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from django.core.mail import send_mail
 from django.conf import settings
+import os
 
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 
 @api_view(["POST"])
 def contact_api(request):
@@ -17,17 +19,27 @@ def contact_api(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # 🔥 EMAIL SHOULD NEVER BREAK API
     try:
-        send_mail(
-            subject=f"Portfolio Message from {name}",
-            message=f"From: {email}\n\nMessage:\n{message}",
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[settings.EMAIL_HOST_USER],
-            fail_silently=True,   # 🔑 KEY
+        requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": "Portfolio <onboarding@resend.dev>",
+                "to": ["yourgmail@gmail.com"],
+                "subject": f"Portfolio Message from {name}",
+                "html": f"""
+                    <p><strong>Name:</strong> {name}</p>
+                    <p><strong>Email:</strong> {email}</p>
+                    <p>{message}</p>
+                """,
+            },
+            timeout=5,   # 🔥 HARD LIMIT
         )
     except Exception as e:
-        print("Email error (ignored):", e)
+        print("Email API error:", e)
 
     return Response(
         {"success": "Message sent successfully"},
