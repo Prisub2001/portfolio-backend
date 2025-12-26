@@ -18,12 +18,16 @@ def contact_api(request):
         email = serializer.validated_data['email']
         message = serializer.validated_data['message']
 
-        send_mail(
-            subject=f'Portfolio Message from {name}',
-            message=f'Email: {email}\n\nMessage:\n{message}',
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[settings.EMAIL_HOST_USER],
-        )
+        try:
+            send_mail(
+                subject=f"Portfolio Message from {name}",
+                message=f"Email: {email}\n\nMessage:\n{message}",
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[settings.EMAIL_HOST_USER],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print("Email error:", e)
 
         return Response(
             {'success': 'Message sent successfully'},
